@@ -70,15 +70,9 @@ if (!defined('MAIL_USERNAME'))                  define('MAIL_USERNAME', 'pcto.5i
 if (!defined('MAIL_PASSWORD'))                  define('MAIL_PASSWORD', 'pcto_cl5ID');
 if (!defined('MAIL_ENCRYPTION'))                define('MAIL_ENCRYPTION', 'ssl');
 if (!defined('MAIL_PORT'))                      define('MAIL_PORT', 465);
-
+```
 ### Existing Account(s)
 Il database contiene già un account di prova per testare le cose. Usalo o vai alla pagina di registrazione e inizia a creare nuovi account.
-```php
-// credentials for existing account
-
-username: root
-password: root
-```
 
 ### Project File Structure
 
@@ -94,5 +88,105 @@ password: root
 | `assets/uploads`              | Cartella per tutti i contenuti caricati dagli utenti dell'applicazione. |
 | `assets/uploads/users`        | Immagini caricate dagli utenti. |
 | `assets/vendor`               | Cartella per tutti i plugin / risorse. |
-           
+
+### Building on top of System
+
+Una volta impostato questo sistema di autenticazione, può essere facilmente ampliato in questo modo: le nuove pagine possono essere aggiunte rapidamente creando più cartelle nella directory principale, con il file principale frontend che è `index.php`, le funzionalità backend nella sottocartella` includes` e lo stile personalizzato nel file` custom.css`, presente nella stessa cartella di livello superiore di index.php.
+
+Nuovi gruppi di funzioni o classi possono essere creati in nuovi file nella cartella`assets/includes/` e devono essere inclusi nelle pagine relevanti. se le funzionalità aggiunte sono in gran parte universali, possono essere richiesti nel file` assets/layouts/header.php` (questo li include per tutti i file frontend, ma i file backend dovranno ancora essere collegati singolarmente). Allo stesso modo, altri file CSS globali possono essere salvati nella cartella` assets/css` e inclusi nel file di layout header.php. La stessa convenzione si applicherà ai file JS, con gli script che saranno nella cartella` assets/js /` e inclusi nel file` assets/layouts/footer.php`.
+
+Ulteriori plugin o risorse offline possono essere collocati nella cartella`assets/vendor/` e collegati nel file di layout header o footer, a seconda del tipo di file da collegare.
+
+> Una buona convenzione da adottare durante la costruzione sul sistema sarebbe adottare le stesse convenzioni di struttura dei file come in questo sistema, al fine di evitare uno sforzo extra e / o inutile per sincronizzare l'intero progetto. Il sistema è già stato realizzato con la struttura di file di applicazione PHP di default al fine di evitare la maggior parte dei conflitti.
+
+## Components
+
+### Languages
+
+- PHP
+- MySQLi API
+- HTML5
+- CSS3
+
+### Development Environment
+
+- Apache
+- Ubuntu
+
+### External Resources/Plugins
+
+- PHPMailer-6.0.6
+- Bootstrap-4.3.1
+- Font awesome-5.12.0
+- JQuery-3.4.1
+
+## Features
+
+### Easy Integration / Embedding
+
+L'applicazione è progettata per essere facilmente incorporabile e deve essere realizzata su di essa. L'attuale interfaccia utente è stata creata per lo più con bootstrap. Lo scopo di questo progetto è fornire la funzionalità `backend` necessaria, e tutti gli elementi dell'interfaccia utente dovrebbero essere sostituiti e / o ricostruiti quando si crea un'applicazione separata.
+
+Si raccomanda di installare / incorporare l'applicazione nel progetto prima della creazione dell'applicazione `backend` (e preferibilmente dell'applicazione frontend). In caso contrario, se la struttura dei file esistente è in conflitto con quella di questo progetto, potrebbero verificarsi problemi e sarà difficile sincronizzare nuovamente l'intero progetto.
+
+Il progetto è stato creato con la struttura standard dei file di sviluppo PHP, per mantenere la flessibilità. Aggiungi semplicemente altre funzionalità / pagine nello stesso modo in cui sono state create le cartelle di pagina di esempio nella cartella principale.
+
+In ciascuna cartella di pagina, il file `index.php` è la pagina principale, la cartella `includes` contiene la funzionalità backend e il file `custom.css` consente disegni personalizzati su un file css globale senza interferire con altre pagine.
+### Security
+
+#### SQL Injection Protection
+
+Il sistema utilizza "mysqli prepared statements" per tutte le interazioni con il database, eliminando la maggior parte dei rischi di SQL injection. Non è stato usato alcun query SQL raw in nessuna parte, inoltre, tutti i dati inseriti dall'utente vengono verificati e controllati prima di essere utilizzati in qualsiasi funzionalità dell'applicazione. Di conseguenza si intensificano ulteriormente le misure di sicurezza.
+
+```php
+// example database query
+
+$sql = "DELETE FROM auth_tokens WHERE user_email=? AND auth_type='account_verify';";
+$stmt = mysqli_stmt_init($conn);
+if (!mysqli_stmt_prepare($stmt, $sql)) {
+
+    $_SESSION['ERRORS']['sqlerror'] = 'SQL ERROR';
+    header("Location: ../");
+    exit();
+}
+else {
+
+    mysqli_stmt_bind_param($stmt, "s", $email);
+    mysqli_stmt_execute($stmt);
+}
+```
+
+#### Header & Email Injection Protection
+
+L'applicazione utilizza la funzione `_cleaninjections()` definita in `assets/includes/security_functions.php` per filtrare e convalidare i dati. Qualsiasi dato inserito dagli utenti per qualsiasi funzionalità viene controllato per l'iniezione di intestazione prima di essere utilizzato. Le funzioni di filtro rimuovono qualsiasi carattere (s) che potrebbe rivelarsi una minaccia, rendendo così innocui qualsiasi script o dati dannosi.
+
+In tutte le funzionalità di back, ogni singolo valore incluso nella posta viene controllato per eventuali injection. Lo stesso vale per le email, impedendo agli utenti di aggiungere campi di posta elettronica aggiuntivi. Ciò riduce notevolmente il rischio di injection di intestazione o di email.
+
+```php
+// Securing against Header Injection
+
+foreach($_POST as $key => $value){
+
+  $_POST[$key] = _cleaninjections(trim($value));
+}
+```
+#### CSRF Protection
+
+C'è anche una pesante protezione contro gli tentativi di CSRF. Un `token csrf` sicuro viene generato all'avvio della sessione e inviato come valore nascosto nel corpo del post per tutti i moduli, in cui viene convalidato e consente allo script di procedere solo se la convalida riesce. La protezione csrf funziona per tutti i moduli, indipendentemente dal fatto che l'utente sia collegato o meno.
+
+Il token csrf è gestito dalle funzioni presenti nel file `assets/includes/security_functions.php`. Il token viene crittografato per impedirne l'estrazione e l'utilizzo.
+```php
+// csrf token generation
+
+function generate_csrf_token() {
+  if (!isset($_SESSION)) {
+      session_start();
+  }
+  if (empty($_SESSION['token'])) {
+      $_SESSION['token'] = bin2hex(random_bytes(32));
+  }
+}
+```
+#### Secure Remember-me Cookie
+
+Il cookie impostato per la funzionalità `remember-me` utilizza valori `selector` e `validator` crittografati che impediscono interferenze o exploit. Il token stesso non viene memorizzato così com'é nel database, eliminando il rischio di fuoriuscita di informazioni in caso di violazione del database. Il token di autenticazione e il selettore sono memorizzati nella tabella `auth_tokens` del database.
             
