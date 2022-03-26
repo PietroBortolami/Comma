@@ -2,6 +2,8 @@
   <img src="assets/images/Comma.png" width="350" align="center"/>
 </p><br>
 
+Sistema di autenticazione PHP di facile integrazione e sicurezza elevata con login, registrazione, profili utente, modifica profilo, verifica dell'account via e-mail, sistema di reimpostazione della password, funzione Ricordami, disconnessione automatica in caso di inattività, variabile di stato e di errore globali, controlli di autenticazione.
+
 # Table of Contents
 
 - [Table of Contents](#table-of-contents)
