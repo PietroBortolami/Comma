@@ -73,7 +73,7 @@ if (!defined('MAIL_ENCRYPTION'))                define('MAIL_ENCRYPTION', 'ssl')
 if (!defined('MAIL_PORT'))                      define('MAIL_PORT', 465);
 ```
 ### Existing Account(s)
-Il database contiene già un account di prova per testare le cose. Usalo o vai alla pagina di registrazione e inizia a creare nuovi account.
+Il database contiene già accounts di prova per testare le cose. Usalo o vai alla pagina di registrazione e inizia a creare nuovi account.
 
 ### Project File Structure
 
